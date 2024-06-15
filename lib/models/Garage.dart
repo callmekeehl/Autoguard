@@ -1,10 +1,13 @@
+// Classe Garage qui étend Utilisateur
 import 'package:autoguard/models/utilisateur.dart';
 
-class Admin extends Utilisateur {
-  final int adminId;
+class Garage extends Utilisateur {
+  final int garageId;
+  final String nomGarage;
+  final String adresseGarage;
 
-  Admin({
-    required this.adminId,
+  Garage({
+    required this.garageId,
     required int utilisateurId,
     required String nom,
     required String prenom,
@@ -12,6 +15,8 @@ class Admin extends Utilisateur {
     required String adresse,
     required String telephone,
     required String type,
+    required this.nomGarage,
+    required this.adresseGarage,
   }) : super(
           utilisateurId: utilisateurId,
           nom: nom,
@@ -22,10 +27,10 @@ class Admin extends Utilisateur {
           type: type,
         );
 
-  // Factory method pour créer une instance de Admin à partir de JSON
-  factory Admin.fromJson(Map<String, dynamic> json) {
-    return Admin(
-      adminId: json['adminId'],
+  // Factory method pour créer une instance de Garage à partir de JSON
+  factory Garage.fromJson(Map<String, dynamic> json) {
+    return Garage(
+      garageId: json['garageId'],
       utilisateurId: json['utilisateurId'],
       nom: json['nom'],
       prenom: json['prenom'],
@@ -33,14 +38,18 @@ class Admin extends Utilisateur {
       adresse: json['adresse'],
       telephone: json['telephone'],
       type: json['type'],
+      nomGarage: json['nomGarage'],
+      adresseGarage: json['adresseGarage'],
     );
   }
 
-  // Méthode pour convertir une instance de Admin en JSON
+  // Méthode pour convertir une instance de Garage en JSON
   @override
   Map<String, dynamic> toJson() {
     final data = super.toJson();
-    data['adminId'] = adminId;
+    data['garageId'] = garageId;
+    data['nomGarage'] = nomGarage;
+    data['adresseGarage'] = adresseGarage;
     return data;
   }
 }

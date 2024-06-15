@@ -1,9 +1,11 @@
-import 'package:autoguard/Clipper.dart';
-import 'package:autoguard/Colors_code.dart';
-import 'package:autoguard/Sign.dart';
-import 'package:flutter/cupertino.dart';
+import 'dart:convert';
+import 'package:autoguard/Constant.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'Clipper.dart';
+import 'Colors_code.dart';
+import 'Sign.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -13,59 +15,131 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  // Fonction pour gérer la connexion
+  Future<void> _login() async {
+    final String email = emailController.text;
+    final String password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showErrorDialog("Veuillez remplir tous les champs.");
+      return;
+    }
+
+    // URL du backend Flask
+    const String _baseUrl = '$url/api/login';
+
+    try {
+      // Envoi de la requête HTTP POST pour l'authentification
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'motDePasse': password}),
+      );
+
+      if (response.statusCode == 200) {
+        // Connexion réussie, stocker le token ou les informations de l'utilisateur
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+        // Vérifiez si le token est présent et non null
+        final token = responseData['token'];
+        if (token == null) {
+          _showErrorDialog("Token absent dans la réponse.");
+          return;
+        }
+
+        // Enregistrer le token localement pour l'utiliser dans l'application
+        final prefs = await SharedPreferences.getInstance();
+        prefs.setString('authToken', token);
+
+        // Naviguer vers l'écran principal ou tableau de bord
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => DashboardScreen()));
+      } else {
+        // Afficher une erreur si la connexion a échoué
+        _showErrorDialog(
+            "Erreur de connexion. Veuillez vérifier vos informations.");
+      }
+    } catch (e) {
+      // Gérer toute autre exception possible
+      _showErrorDialog("Une erreur est survenue: ${e.toString()}");
+    }
+  }
+
+  // Fonction pour afficher une boîte de dialogue d'erreur
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Erreur"),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: Text("OK"),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  // Widgets pour les champs de texte
+  Widget _buildEmail() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [
+        BoxShadow(
+          offset: Offset(3, 3),
+        )
+      ]),
+      child: TextFormField(
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return "Entrez votre Email";
+          }
+          return null;
+        },
+        controller: emailController,
+        decoration: InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.only(top: 14),
+            prefixIcon: Icon(Icons.email_outlined), // Icone d'email
+            hintText: "Entrer votre email"),
+      ),
+    );
+  }
+
+  Widget _buildPassword() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [
+        BoxShadow(
+          offset: Offset(3, 3),
+        )
+      ]),
+      child: TextFormField(
+        obscureText: true, // Masquer le mot de passe
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return "Entrez votre Mot de passe";
+          }
+          return null;
+        },
+        controller: passwordController,
+        decoration: InputDecoration(
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.only(top: 14),
+            prefixIcon: Icon(Icons.lock_outline_rounded), // Icone de verrou
+            hintText: "Entrer votre Mot de passe"),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    var emailController = TextEditingController();
-    var passwordController = TextEditingController();
-
-    Widget _buildEmail() {
-      return Container(
-        height: 50,
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [
-          BoxShadow(
-            offset: Offset(3, 3),
-          )
-        ]),
-        child: TextFormField(
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return "Entrez votre Email";
-            }
-          },
-          controller: emailController,
-          decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14),
-              prefixIcon: Icon(Icons.lock_outline_rounded),
-              hintText: "Entrer votre email"),
-        ),
-      );
-    }
-
-    Widget _buildPassword() {
-      return Container(
-        height: 50,
-        decoration: BoxDecoration(color: Colors.white, boxShadow: [
-          BoxShadow(
-            offset: Offset(3, 3),
-          )
-        ]),
-        child: TextFormField(
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return "Entrez votre Mot de passe";
-            }
-          },
-          controller: emailController,
-          decoration: InputDecoration(
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.only(top: 14),
-              prefixIcon: Icon(Icons.email_outlined),
-              hintText: "Entrer votre Mot de passe"),
-        ),
-      );
-    }
-
     final media = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -123,7 +197,7 @@ class _LoginState extends State<Login> {
               SizedBox(
                 height: 20,
               ),
-              Text("Oublie ?",
+              Text("Mot de passe oublié ?",
                   style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -131,33 +205,34 @@ class _LoginState extends State<Login> {
               SizedBox(
                 height: 20,
               ),
-              Container(
-                height: 50,
-                width: 150,
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: LinearGradient(
-                        colors: [Color(0xff9DCEFF), Color(0xff60b3dc)])),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 20,
-                    ),
-                    Text(
-                      "connexion",
-                      style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 17,
-                          color: Colors.white),
-                    ),
-                    SizedBox(
-                      width: 20,
-                    ),
-                    Icon(
-                      Icons.arrow_forward,
-                      color: Colors.white,
-                    )
-                  ],
+              InkWell(
+                onTap: _login, // Ajout du gestionnaire de connexion
+                child: Container(
+                  height: 50,
+                  width: 150,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: LinearGradient(
+                          colors: [Color(0xff9DCEFF), Color(0xff60b3dc)])),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Connexion",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 17,
+                            color: Colors.white),
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: Colors.white,
+                      )
+                    ],
+                  ),
                 ),
               ),
               SizedBox(
